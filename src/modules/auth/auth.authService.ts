@@ -2,7 +2,7 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from 'src/core/service/prisma.service';
 import * as bcrypt from 'bcryptjs';
-import { LoginDto, CreateUserDto } from './auth.dto';
+import { LoginDto, CreateUserDto, FetchUserByEmailDto } from './auth.dto';
 import { $Enums } from '@prisma/client';  // Import Prisma's enums
 
 @Injectable()
@@ -83,6 +83,7 @@ export class UserService {
     });
   }
 
+
   async updateUser(userId: number, updateUserDto: Partial<CreateUserDto>) {
     if (updateUserDto.password) {
       updateUserDto.password = await bcrypt.hash(updateUserDto.password, 10);
@@ -91,6 +92,14 @@ export class UserService {
     return this.prisma.user.update({
       where: { id: userId },
       data: updateUserDto,
+    });
+  }
+
+  // Function to get user by email using the DTO
+  async getUserByEmail(fetchUserByEmailDto: FetchUserByEmailDto) {
+    const { email } = fetchUserByEmailDto;
+    return this.prisma.user.findUnique({
+      where: { email: email },
     });
   }
 

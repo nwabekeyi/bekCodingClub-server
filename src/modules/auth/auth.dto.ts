@@ -11,7 +11,7 @@ export class LoginDto {
   @IsString()
   password: string;
 
-  @ApiProperty({ description: 'User role', enum: $Enums.Role, example: 'student' })  // Use Prisma's Role enum
+  @ApiProperty({ description: 'User role', enum: $Enums.Role, example: 'admin' })  // Use Prisma's Role enum
   @IsEnum($Enums.Role)
   role: $Enums.Role;
 }
@@ -51,4 +51,13 @@ export class CreateUserDto {
   @IsEnum($Enums.Role)
   @IsNotEmpty()
   role: $Enums.Role;
+}
+
+
+
+export class FetchUserByEmailDto {
+  @ApiProperty({ description: 'User email address' })
+  @IsEmail()
+  @IsNotEmpty()
+  email: string;
 }

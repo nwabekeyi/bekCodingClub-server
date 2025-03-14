@@ -1,7 +1,7 @@
 import { Controller, Post, Body, Get, Param, Put, Delete, UseGuards, HttpCode } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { AuthService, UserService } from './auth.authService';
-import { LoginDto, CreateUserDto } from './auth.dto';
+import { LoginDto, CreateUserDto, FetchUserByEmailDto } from './auth.dto';
 import { AuthGuard, AdminGuard } from './auth.authGard';
 
 @ApiTags('Auth')
@@ -19,7 +19,7 @@ export class AuthController {
   }
 }
 
-//users controller
+// users controller
 
 @ApiTags('Users')
 @UseGuards(AdminGuard)
@@ -28,13 +28,13 @@ export class UserController {
   constructor(private readonly userService: UserService) {}
 
   @Post()
-  @ApiOperation({ summary: 'Create a new user(only admin bearer accesstoekn can create users)' })
+  @ApiOperation({ summary: 'Create a new user (only admin bearer access token can create users)' })
   @ApiResponse({ status: 201, description: 'User created successfully.' })
   createUser(@Body() createUserDto: CreateUserDto) {
     return this.userService.createUser(createUserDto);
   }
 
-  @ApiBearerAuth()
+  @ApiBearerAuth('bearerAuth') 
   @UseGuards(AuthGuard)
   @Get(':id')
   @ApiOperation({ summary: 'Get a user by ID' })
@@ -44,7 +44,19 @@ export class UserController {
     return this.userService.getUserById(userId);
   }
 
-  @ApiBearerAuth()
+
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth('bearerAuth') 
+  @Get('email/:email')
+  @ApiOperation({ summary: 'Get a user by email' })
+  @ApiResponse({ status: 200, description: 'User retrieved successfully.' })
+  async getUserByEmail(@Param('email') email: string) {
+    const fetchUserByEmailDto: FetchUserByEmailDto = { email };
+    return this.userService.getUserByEmail(fetchUserByEmailDto);
+  }
+  
+
+  @ApiBearerAuth('bearerAuth')
   @UseGuards(AuthGuard)
   @Put(':id')
   @ApiOperation({ summary: 'Update a user by ID' })
@@ -54,7 +66,7 @@ export class UserController {
     return this.userService.updateUser(userId, updateUserDto);
   }
 
-  @ApiBearerAuth()
+  @ApiBearerAuth('bearerAuth')
   @UseGuards(AdminGuard)
   @Delete(':id')
   @ApiOperation({ summary: 'Only admin can delete users' })
@@ -65,7 +77,7 @@ export class UserController {
   }
 
   // New endpoint to get all users, restricted to admins
-  @ApiBearerAuth()
+  @ApiBearerAuth('bearerAuth') 
   @UseGuards(AdminGuard)
   @Get()
   @ApiOperation({ summary: 'Get all users (Admin only)' })

@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, $Enums } from '@prisma/client';  // Import PrismaClient and Prisma enums
 import * as bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
@@ -15,6 +15,7 @@ async function main() {
       lastName: 'Doe',
       phoneNumber: '123-456-7890',
       progress: 85.0,
+      role: $Enums.Role.admin  // Use Prisma enum for role
     },
     {
       email: 'jane.smith@example.com',
@@ -23,6 +24,7 @@ async function main() {
       lastName: 'Smith',
       phoneNumber: '987-654-3210',
       progress: 92.5,
+      role: $Enums.Role.student  // Use Prisma enum for role
     },
     {
       email: 'alex.jones@example.com',
@@ -31,6 +33,7 @@ async function main() {
       lastName: 'Jones',
       phoneNumber: '555-555-5555',
       progress: 75.0,
+      role: $Enums.Role.student  // Use Prisma enum for role
     },
   ];
 
@@ -47,6 +50,7 @@ async function main() {
         phoneNumber: user.phoneNumber || null, // Ensure null is used instead of undefined
         progress: user.progress,
         password: hashedPassword,
+        role: user.role,  // Assign Prisma enum for role
       },
       create: {
         email: user.email,
@@ -55,6 +59,7 @@ async function main() {
         lastName: user.lastName,
         phoneNumber: user.phoneNumber,
         progress: user.progress,
+        role: user.role,  // Assign Prisma enum for role
       },
     });
   }

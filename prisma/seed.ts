@@ -120,6 +120,26 @@ async function main() {
   }
 
   console.log('CodeQuery entries created and linked to users');
+
+  // Calculate and update averageScore for each user
+  for (const user of createdUsers) {
+    const userCodeQueries = await prisma.codeQuery.findMany({
+      where: { userId: user.id },
+      select: { score: true },
+    });
+
+    const totalScore = userCodeQueries.reduce((sum, query) => sum + (query.score || 0), 0);
+    const averageScore = userCodeQueries.length > 0 ? totalScore / userCodeQueries.length : 0;
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { averageScore },
+    });
+
+    console.log(`Updated average score for userId: ${user.id} to ${averageScore}`);
+  }
+
+  console.log('Average scores updated for all users');
 }
 
 main()

@@ -20,6 +20,7 @@ model User {
   firstName     String?
   lastName      String?
   phoneNumber   String?
+  averageScore  Float?      @default(0.0) // Average score for all CodeQuery entries
   progress      Float       @default(0.0) // Progress as percentage (0.0 to 100.0)
   role          Role
   currentTopicId Int        @default(1) // Tracks current topic

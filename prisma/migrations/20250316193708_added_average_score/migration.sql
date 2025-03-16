@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "User" ADD COLUMN     "averageScore" DOUBLE PRECISION DEFAULT 0.0;

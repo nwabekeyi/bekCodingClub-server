@@ -18,6 +18,26 @@ const runtimeEnvironment: RequiredEnvironment[] = [
     {
         name: "JWT_SECRET",
         type: RequiredEnvironmentTypes.String,
+    },
+    {
+        name: "CLOUDINARY_URL",
+        type: RequiredEnvironmentTypes.String,
+    },
+    {
+        name: "CLOUDINARY_API_SECRET",
+        type: RequiredEnvironmentTypes.String,
+    },
+    {
+        name: "CLOUDINARY_API_KEY",
+        type: RequiredEnvironmentTypes.String,
+    },
+    {
+        name: "CLOUDINARY_NAME",
+        type: RequiredEnvironmentTypes.String,
+    },
+    {
+        name: "OPENAI_API_KEY",
+        type: RequiredEnvironmentTypes.String,
     }
 ];
 

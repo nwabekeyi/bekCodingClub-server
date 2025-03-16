@@ -15,7 +15,8 @@ async function main() {
       lastName: 'Doe',
       phoneNumber: '123-456-7890',
       progress: 85.0,
-      role: $Enums.Role.admin  // Use Prisma enum for role
+      role: $Enums.Role.admin,  // Use Prisma enum for role
+      currentTopicId: 1  // Default topic ID
     },
     {
       email: 'jane.smith@example.com',
@@ -24,7 +25,8 @@ async function main() {
       lastName: 'Smith',
       phoneNumber: '987-654-3210',
       progress: 92.5,
-      role: $Enums.Role.student  // Use Prisma enum for role
+      role: $Enums.Role.student,  // Use Prisma enum for role
+      currentTopicId: 2  // Custom topic ID for demonstration
     },
     {
       email: 'alex.jones@example.com',
@@ -33,7 +35,8 @@ async function main() {
       lastName: 'Jones',
       phoneNumber: '555-555-5555',
       progress: 75.0,
-      role: $Enums.Role.student  // Use Prisma enum for role
+      role: $Enums.Role.student,  // Use Prisma enum for role
+      currentTopicId: 3  // Custom topic ID for demonstration
     },
   ];
 
@@ -51,6 +54,7 @@ async function main() {
         progress: user.progress,
         password: hashedPassword,
         role: user.role,  // Assign Prisma enum for role
+        currentTopicId: user.currentTopicId // Add current topic ID to the update block
       },
       create: {
         email: user.email,
@@ -60,11 +64,12 @@ async function main() {
         phoneNumber: user.phoneNumber,
         progress: user.progress,
         role: user.role,  // Assign Prisma enum for role
+        currentTopicId: user.currentTopicId // Add current topic ID to the create block
       },
     });
   }
 
-  console.log('Seed data upserted with hashed passwords');
+  console.log('Seed data upserted with hashed passwords and current topic IDs');
 }
 
 main()

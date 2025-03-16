@@ -13,15 +13,29 @@ enum Role {
   admin
 }
 
-// User model
 model User {
-  id            Int     @id @default(autoincrement())
-  email         String  @unique
+  id            Int         @id @default(autoincrement())
+  email         String      @unique
   password      String
   firstName     String?
   lastName      String?
   phoneNumber   String?
-  progress      Float   @default(0.0) // Progress as percentage (0.0 to 100.0)
+  progress      Float       @default(0.0) // Progress as percentage (0.0 to 100.0)
   role          Role
-  currentTopicId Int     @default(1) // New field with default value set to 1
+  currentTopicId Int        @default(1) // Tracks current topic
+  currentTaskId  Int        @default(0) // Tracks current task
+  codeQueries   CodeQuery[] // One-to-many relationship with CodeQuery
+}
+
+model CodeQuery {
+  id          Int      @id @default(autoincrement())
+  query       String?  // Direct query string (if no files)
+  fileContent String?  // Combined content if files are uploaded
+  fileNames   String[] // Original file names (if files uploaded)
+  criteria    String   // Grading criteria from frontend
+  score       Int?     // AI-assigned score (0-100)
+  hints       String?  // AI-provided improvement hints
+  createdAt   DateTime @default(now())
+  userId      Int      // Foreign key linking to User
+  user        User     @relation(fields: [userId], references: [id]) // Relation definition
 }

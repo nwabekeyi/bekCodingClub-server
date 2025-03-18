@@ -21,10 +21,13 @@ async function main() {
       firstName: 'John',
       lastName: 'Doe',
       phoneNumber: '123-456-7890',
+      totalScore: 0, // Initial totalScore
+      averageScore: 0.0, // Initial averageScore
       progress: 85.0,
       role: $Enums.Role.admin,
       currentTopicId: 1,
-      currentTaskId: 0,
+      lastTaskId: 0, // Changed from currentTaskId to lastTaskId to match your model
+      resetPasswordToken: null, // Add resetPasswordToken field
     },
     {
       email: 'jane.smith@example.com',
@@ -32,10 +35,13 @@ async function main() {
       firstName: 'Jane',
       lastName: 'Smith',
       phoneNumber: '987-654-3210',
+      totalScore: 0, // Initial totalScore
+      averageScore: 0.0, // Initial averageScore
       progress: 92.5,
       role: $Enums.Role.student,
       currentTopicId: 2,
-      currentTaskId: 0,
+      lastTaskId: 0,
+      resetPasswordToken: null, // Add resetPasswordToken field
     },
     {
       email: 'alex.jones@example.com',
@@ -43,10 +49,13 @@ async function main() {
       firstName: 'Alex',
       lastName: 'Jones',
       phoneNumber: '555-555-5555',
+      totalScore: 0, // Initial totalScore
+      averageScore: 0.0, // Initial averageScore
       progress: 75.0,
       role: $Enums.Role.student,
       currentTopicId: 3,
-      currentTaskId: 0,
+      lastTaskId: 0,
+      resetPasswordToken: null, // Add resetPasswordToken field
     },
   ];
 
@@ -60,17 +69,20 @@ async function main() {
         firstName: user.firstName,
         lastName: user.lastName,
         phoneNumber: user.phoneNumber,
+        totalScore: user.totalScore,
+        averageScore: user.averageScore,
         progress: user.progress,
         role: user.role,
         currentTopicId: user.currentTopicId,
-        currentTaskId: user.currentTaskId,
+        lastTaskId: user.lastTaskId,
+        resetPasswordToken: user.resetPasswordToken, // Save resetPasswordToken
       },
     });
     createdUsers.push(createdUser);
     console.log(`Created user: ${createdUser.email} with ID: ${createdUser.id}`);
   }
 
-  console.log('Users created with hashed passwords, current topic IDs, and current task IDs');
+  console.log('Users created with hashed passwords, current topic IDs, last task IDs, and initial scores');
 
   // Seed CodeQuery entries linked to users using captured IDs
   const codeQueries = [
@@ -103,7 +115,7 @@ async function main() {
     },
   ];
 
-  // Create CodeQuery entries
+  // Create CodeQuery entries and update user scores
   for (const codeQuery of codeQueries) {
     await prisma.codeQuery.create({
       data: {
@@ -117,29 +129,33 @@ async function main() {
       },
     });
     console.log(`Created CodeQuery for userId: ${codeQuery.userId}`);
+
+    // Update user's totalScore, lastTaskId, and averageScore
+    const user = createdUsers.find((u) => u.id === codeQuery.userId);
+    if (user) {
+      const userCodeQueries = await prisma.codeQuery.findMany({
+        where: { userId: user.id },
+        select: { score: true },
+      });
+
+      const totalScore = userCodeQueries.reduce((sum, query) => sum + (query.score || 0), 0);
+      const newLastTaskId = userCodeQueries.length; // Number of tasks completed
+      const averageScore = newLastTaskId > 0 ? totalScore / newLastTaskId : 0;
+
+      await prisma.user.update({
+        where: { id: user.id },
+        data: {
+          totalScore,
+          averageScore,
+          lastTaskId: newLastTaskId,
+        },
+      });
+
+      console.log(`Updated userId: ${user.id} - Total Score: ${totalScore}, Average Score: ${averageScore}, Last Task ID: ${newLastTaskId}`);
+    }
   }
 
-  console.log('CodeQuery entries created and linked to users');
-
-  // Calculate and update averageScore for each user
-  for (const user of createdUsers) {
-    const userCodeQueries = await prisma.codeQuery.findMany({
-      where: { userId: user.id },
-      select: { score: true },
-    });
-
-    const totalScore = userCodeQueries.reduce((sum, query) => sum + (query.score || 0), 0);
-    const averageScore = userCodeQueries.length > 0 ? totalScore / userCodeQueries.length : 0;
-
-    await prisma.user.update({
-      where: { id: user.id },
-      data: { averageScore },
-    });
-
-    console.log(`Updated average score for userId: ${user.id} to ${averageScore}`);
-  }
-
-  console.log('Average scores updated for all users');
+  console.log('CodeQuery entries created and user scores updated');
 }
 
 main()

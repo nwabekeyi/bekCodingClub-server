@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEmail, IsNotEmpty, IsOptional, IsString, IsEnum } from 'class-validator';
+import { IsEmail, IsNotEmpty, IsOptional, IsString, IsEnum, MinLength} from 'class-validator';
 import { $Enums } from '@prisma/client';  // Import Prisma's enums
 
 export class LoginDto {
@@ -54,10 +54,42 @@ export class CreateUserDto {
 }
 
 
-
 export class FetchUserByEmailDto {
   @ApiProperty({ description: 'User email address' })
   @IsEmail()
   @IsNotEmpty()
+  email: string;
+}
+
+export class ResetPasswordDto {
+  @ApiProperty({ description: 'The reset token received via email', example: 'jwt.token.here' })
+  @IsString({ message: 'Token must be a string' })
+  @IsNotEmpty({ message: 'Token is required' })
+  token: string;
+
+  @ApiProperty({ description: 'The new password', example: 'newpassword123' })
+  @IsString({ message: 'Password must be a string' })
+  @MinLength(8, { message: 'Password must be at least 8 characters long' })
+  @IsNotEmpty({ message: 'Password is required' })
+  password: string;
+}
+
+// New DTO for sending registration link
+export class SendRegistrationLinkDto {
+  @ApiProperty({ description: 'The email address of the user', example: 'user@example.com' })
+  @IsEmail({}, { message: 'Must be a valid email address' })
+  @IsNotEmpty({ message: 'Email is required' })
+  email: string;
+
+  @ApiProperty({ description: 'The first name of the user', example: 'John' })
+  @IsString({ message: 'First name must be a string' })
+  @IsNotEmpty({ message: 'First name is required' })
+  firstName: string;
+}
+
+export class ForgotPasswordDto {
+  @ApiProperty({ description: 'The email address to send the reset link to', example: 'user@example.com' })
+  @IsEmail({}, { message: 'Must be a valid email address' })
+  @IsNotEmpty({ message: 'Email is required' })
   email: string;
 }

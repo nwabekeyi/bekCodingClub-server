@@ -36,7 +36,15 @@ const runtimeEnvironment: RequiredEnvironment[] = [
         type: RequiredEnvironmentTypes.String,
     },
     {
-        name: "OPENAI_API_KEY",
+        name: "AI_API_KEY",
+        type: RequiredEnvironmentTypes.String,
+    },
+    {
+        name: "MAILER_PASS",
+        type: RequiredEnvironmentTypes.String,
+    },
+    {
+        name: "DOMAIN",
         type: RequiredEnvironmentTypes.String,
     }
 ];

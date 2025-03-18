@@ -1,3 +1,4 @@
+// src/modules/task/task.dto.ts
 import { IsString, IsOptional, IsNotEmpty, MaxLength, IsInt } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
@@ -28,6 +29,22 @@ export class CodeReviewDto {
   @IsInt()
   @IsNotEmpty({ message: 'User ID is required' })
   userId: number;
+
+  @ApiProperty({
+    description: 'Current topic ID',
+    example: 5,
+  })
+  @IsInt()
+  @IsNotEmpty({ message: 'Current topic ID is required' })
+  currentTopicId: number;
+
+  @ApiProperty({
+    description: 'Last task ID to calculate average score',
+    example: 12,
+  })
+  @IsInt()
+  @IsNotEmpty({ message: 'Last task ID is required' })
+  lastTaskId: number;
 }
 
 export class CodeResponseDto {
@@ -48,4 +65,17 @@ export class CodeResponseDto {
     example: 'Score: 85\nHints: Use descriptive variable names instead of a, b\nExplanation: ...',
   })
   response: string;
+
+  @ApiProperty({
+    description: 'Total score of all tasks for this user',
+    example: 200,
+  })
+  totalScore: number;
+
+  @ApiProperty({
+    description: 'Average score across all tasks for this user',
+    example: 70,
+    nullable: true, // Allow null to match Prisma model
+  })
+  averageScore: number | null; // Changed to number | null
 }

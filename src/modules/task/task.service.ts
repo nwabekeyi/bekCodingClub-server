@@ -1,3 +1,4 @@
+// src/modules/task/task.service.ts
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from 'src/core/service/prisma.service';
 import { CustomLogger } from 'src/core/logger';
@@ -9,12 +10,12 @@ import axios from 'axios';
 export class TaskService {
   private readonly logger = new CustomLogger(TaskService.name);
   private readonly apiUrl = 'https://chatgpt4-ai-chatbot.p.rapidapi.com/ask';
-  private readonly apiKey = '9da9f82812msha5c5b51a2044cf4p173648jsn38ea744aab15'; // Store in .env in production
+  private readonly apiKey = process.env.AI_API_KEY // Store in .env in production
 
   constructor(private readonly prisma: PrismaService) {}
 
   async processCodeQuery(request: CodeQueryRequest): Promise<CodeResponseDto> {
-    const { query, files, criteria, userId } = request;
+    const { query, files, criteria, userId, currentTopicId, lastTaskId } = request;
 
     if (!query && (!files || files.length === 0)) {
       throw new BadRequestException('Either query or files must be provided');
@@ -28,7 +29,15 @@ export class TaskService {
       throw new BadRequestException('User ID is required');
     }
 
-    // Check if userId is a string and convert it to a number if necessary
+    if (!currentTopicId || isNaN(currentTopicId)) {
+      throw new BadRequestException('Valid current topic ID is required');
+    }
+
+    if (lastTaskId === undefined || isNaN(lastTaskId)) {
+      throw new BadRequestException('Valid last task ID is required');
+    }
+
+    // Parse userId
     let parsedUserId: number;
     if (typeof userId === 'string') {
       parsedUserId = parseInt(userId, 10);
@@ -41,7 +50,7 @@ export class TaskService {
       throw new BadRequestException('User ID must be a string or number');
     }
 
-    // Optional: Validate user exists
+    // Validate user exists
     const user = await this.prisma.user.findUnique({ where: { id: parsedUserId } });
     if (!user) {
       throw new BadRequestException(`User with ID ${parsedUserId} not found`);
@@ -61,7 +70,6 @@ export class TaskService {
       }));
 
       if (files.length === 2) {
-        // Combine HTML and CSS
         const htmlFile = fileContents.find((f) => f.name.endsWith('.html'));
         const cssFile = fileContents.find((f) => f.name.endsWith('.css'));
         if (!htmlFile || !cssFile) {
@@ -69,11 +77,9 @@ export class TaskService {
         }
         finalQuery = `HTML Code:\n${htmlFile.content}\n\nCSS Code:\n${cssFile.content}`;
       } else {
-        // Single file
         finalQuery = fileContents[0].content;
       }
     } else {
-      // Direct query string
       finalQuery = query!;
     }
 
@@ -113,23 +119,47 @@ export class TaskService {
       const score = scoreMatch ? parseInt(scoreMatch[1], 10) : 0;
       const hints = hintsMatch ? hintsMatch[1] : 'No hints provided';
 
-      // Save to database with parsed userId
-      await this.prisma.codeQuery.create({
-        data: {
-          query: query || null,
-          fileContent: files ? finalQuery : null,
-          fileNames: files ? files.map((f) => f.originalname) : [],
-          criteria,
-          score,
-          hints,
-          userId: parsedUserId, // Link to user
-        },
+      // Update user scores and save code query in a transaction
+      const updatedUser = await this.prisma.$transaction(async (prisma) => {
+        // Save code query
+        await prisma.codeQuery.create({
+          data: {
+            query: query || null,
+            fileContent: files ? finalQuery : null,
+            fileNames: files ? files.map((f) => f.originalname) : [],
+            criteria,
+            score,
+            hints,
+            userId: parsedUserId,
+          },
+        });
+
+        // Calculate new scores
+        const newTotalScore = user.totalScore + score;
+        const newLastTaskId = lastTaskId + 1; // Increment since this is a new task
+        const newAverageScore = newLastTaskId > 0 ? newTotalScore / newLastTaskId : 0;
+
+        // Update user
+        return prisma.user.update({
+          where: { id: parsedUserId },
+          data: {
+            totalScore: newTotalScore,
+            averageScore: newAverageScore,
+            lastTaskId: newLastTaskId,
+            currentTopicId: currentTopicId,
+          },
+        });
       });
 
+      this.logger.debug(`Updated user - Total Score: ${updatedUser.totalScore}, Average Score: ${updatedUser.averageScore}`);
+
+      // Return response with updated scores
       return {
         score,
         hints,
         response: aiResponse,
+        totalScore: updatedUser.totalScore,
+        averageScore: updatedUser.averageScore, // This is now number | null as per DTO
       };
     } catch (error) {
       this.logger.error('API call failed:', error.message);

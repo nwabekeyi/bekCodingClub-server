@@ -4,8 +4,8 @@ import { ApiTags, ApiOperation, ApiResponse, ApiConsumes, ApiBody } from '@nestj
 import { TaskService } from './task.service';
 import { CodeReviewDto, CodeResponseDto } from './task.dto';
 
-@ApiTags('Code Review')
-@Controller('code')
+@ApiTags('task Review')
+@Controller('task')
 export class TaskController {
   constructor(private readonly codeService: TaskService) {}
 
@@ -33,8 +33,16 @@ export class TaskController {
           description: 'Grading criteria',
         },
         userId: {
-          type: 'integer', // Ensure userId is displayed as an integer field
+          type: 'integer',
           description: 'ID of the user submitting the query',
+        },
+        currentTopicId: {
+          type: 'integer',
+          description: 'Current topic ID',
+        },
+        lastTaskId: {
+          type: 'integer',
+          description: 'Last completed task ID',
         },
       },
     },
@@ -51,7 +59,9 @@ export class TaskController {
       query: codeReviewDto.query,
       files: files && files.length > 0 ? files : undefined,
       criteria: codeReviewDto.criteria,
-      userId: parseInt(codeReviewDto.userId.toString()), // Parse userId as an integer
+      userId: parseInt(codeReviewDto.userId.toString()),
+      currentTopicId: parseInt(codeReviewDto.currentTopicId.toString()),
+      lastTaskId: parseInt(codeReviewDto.lastTaskId.toString()),
     };
     return this.codeService.processCodeQuery(request);
   }

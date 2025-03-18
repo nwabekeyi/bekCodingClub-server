@@ -9,9 +9,9 @@ import { TaskModule } from './modules/task';
 @Module({
   imports: [
     PrismaModule,
-     AuthModule,
+    AuthModule,
     PdfModule,
-    TaskModule
+    TaskModule,
   ],
   controllers: [AppController],
   providers: [AppService],

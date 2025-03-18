@@ -14,18 +14,20 @@ enum Role {
 }
 
 model User {
-  id            Int         @id @default(autoincrement())
-  email         String      @unique
-  password      String
-  firstName     String?
-  lastName      String?
-  phoneNumber   String?
-  averageScore  Float?      @default(0.0) // Average score for all CodeQuery entries
-  progress      Float       @default(0.0) // Progress as percentage (0.0 to 100.0)
-  role          Role
-  currentTopicId Int        @default(1) // Tracks current topic
-  currentTaskId  Int        @default(0) // Tracks current task
-  codeQueries   CodeQuery[] // One-to-many relationship with CodeQuery
+  id               Int         @id @default(autoincrement())
+  email            String      @unique
+  password         String
+  firstName        String?
+  lastName         String?
+  phoneNumber      String?
+  totalScore       Int         @default(0) // Total score for all CodeQuery entries
+  averageScore     Int?        @default(0) // Average score calculated as totalScore / lastTaskId
+  progress         Int         @default(0) // Progress as percentage (0.0 to 100.0)
+  role             Role
+  currentTopicId   Int         @default(1) // Tracks current topic
+  lastTaskId       Int         @default(0) // Tracks last completed task
+  resetPasswordToken String?   // Allows string or null, no default needed
+  codeQueries      CodeQuery[] // One-to-many relationship with CodeQuery
 }
 
 model CodeQuery {

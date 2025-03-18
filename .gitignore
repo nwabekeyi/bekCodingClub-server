@@ -54,3 +54,7 @@ pids
 
 # Diagnostic reports (https://nodejs.org/api/report.html)
 report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
+
+
+#firebase service 
+/beks-coding-club-firebase-adminsdk-fbsvc-fd8ea8e508.json

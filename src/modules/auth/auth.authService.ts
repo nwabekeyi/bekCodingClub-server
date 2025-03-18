@@ -11,7 +11,8 @@ import {
   SendRegistrationLinkDto 
 } from './auth.dto';
 import { $Enums } from '@prisma/client';
-import { EmailService } from 'src/core/emailService'; // Adjust path if needed
+import { EmailService } from 'src/core/emailService';
+import { FirebaseAdminService } from 'src/core/firebase-admin/firebase-admin.service';
 
 @Injectable()
 export class AuthService {
@@ -20,13 +21,12 @@ export class AuthService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
-    private readonly emailService: EmailService, // Inject EmailService
+    private readonly emailService: EmailService,
+    private readonly firebaseService: FirebaseAdminService, // Inject FirebaseAdminService
   ) {
     this.domainUrl = process.env.DOMAIN || 'http://localhost:3000';
   }
 
-
-  //Login logic
   async login(loginDto: LoginDto) {
     const { email, password, role } = loginDto;
 
@@ -46,7 +46,6 @@ export class AuthService {
     };
   }
 
-  //generate url token logic
   private generateToken(userId: number, email: string, role: $Enums.Role): string {
     const payload = { sub: userId, email, role };
     let token: string;
@@ -60,7 +59,6 @@ export class AuthService {
     return token;
   }
 
-  //send reset password logic
   async sendResetPasswordLink(forgotPasswordDto: ForgotPasswordDto) {
     const { email } = forgotPasswordDto;
 
@@ -79,12 +77,12 @@ export class AuthService {
       data: { resetPasswordToken: resetToken },
     });
 
-    const resetLink = `${this.domainUrl}/passwordreset/toekn?token=${resetToken}&email=${encodeURIComponent(email)}`;
+    const resetLink = `${this.domainUrl}/passwordreset/token?token=${resetToken}&email=${encodeURIComponent(email)}`; // Fixed typo: 'toekn' -> 'token'
 
     await this.emailService.sendEmail({
       to: email,
       subject: 'Password Reset Request',
-      template: 'resetPassword', // No .ejs extension, handled by EmailService
+      template: 'resetPassword',
       context: {
         name: user.firstName || 'User',
         resetLink,
@@ -94,29 +92,25 @@ export class AuthService {
     return { message: 'Reset link sent to your email' };
   }
 
-
-  //send registration link
   async sendRegistrationLink(sendRegistrationLinkDto: SendRegistrationLinkDto) {
     const { email, firstName } = sendRegistrationLinkDto;
 
-    const user = await this.prisma.user.findUnique({ where: { email } });
-    if (!user) {
-      throw new UnauthorizedException('User not found');
+    // Check if email exists in Firestore 'registrations' collection
+    const emailExistsInFirestore = await this.firebaseService.isEmailExists(email);
+    if (!emailExistsInFirestore) {
+      throw new UnauthorizedException('User is not a club member');
     }
 
+    //generate random code
     const confirmationToken = require('crypto').randomBytes(32).toString('hex');
-
-    await this.prisma.user.update({
-      where: { id: user.id },
-      data: { resetPasswordToken: confirmationToken },
-    });
-
+    
+    //send cod 
     const registrationLink = `${this.domainUrl}/signup/confirm?token=${confirmationToken}&email=${encodeURIComponent(email)}`;
 
     await this.emailService.sendEmail({
       to: email,
       subject: 'Welcome to Beks Coding Club - Confirm Your Registration',
-      template: 'registrationForm', // No .ejs extension, handled by EmailService
+      template: 'registration',
       context: {
         name: firstName,
         registrationLink,
@@ -126,7 +120,6 @@ export class AuthService {
     return { message: 'Registration link sent to your email' };
   }
 
-  //reset password link
   async resetPassword(resetPasswordDto: ResetPasswordDto) {
     const { token, password } = resetPasswordDto;
 

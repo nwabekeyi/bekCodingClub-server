@@ -5,8 +5,8 @@ import { AuthController, UserController } from './auth.controller';
 import { PrismaService } from 'src/core/service/prisma.service';
 import { UserService } from './auth.authService';
 import { AuthGuard, AdminGuard } from './auth.authGard';
-import { EmailModule } from 'src/core/emailService/email.modeile'; // Import EmailModule
-
+import { EmailModule } from 'src/core/emailService/email.module'; // Import EmailModule
+import { FirebaseAdminService } from 'src/core/firebase-admin/firebase-admin.service';
 @Module({
   imports: [
     JwtModule.register({
@@ -21,6 +21,7 @@ import { EmailModule } from 'src/core/emailService/email.modeile'; // Import Ema
     UserService,
     AuthGuard,
     AdminGuard,
+    FirebaseAdminService
   ],
   controllers: [AuthController, UserController],
 })

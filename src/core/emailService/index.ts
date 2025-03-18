@@ -10,7 +10,7 @@ export class EmailService implements IEmailService {
 
   async sendEmail(options: IEmailOptions): Promise<void> {
     try {
-      const templatePath = join(__dirname, '../../public/emailTemplates', `${options.template}.ejs`);
+      const templatePath = join(process.cwd(), 'src/public/emailTemplates', `${options.template}.ejs`);
       const htmlContent: string = await ejs.renderFile(templatePath, options.context);
 
       await this.mailerService.sendMail({

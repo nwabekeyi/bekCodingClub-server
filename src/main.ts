@@ -2,10 +2,14 @@ import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import { NestExpressApplication } from '@nestjs/platform-express';
-import { Request, Response, NextFunction } from 'express'; // Import types for req, res, and next
+import { join } from 'path';
+import { Request, Response, NextFunction } from 'express';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
+
+  // Serve static assets from the public directory
+  app.useStaticAssets(join(__dirname, '..', 'public'));
 
   // Middleware to handle CORS and OPTIONS requests
   app.use((req: Request, res: Response, next: NextFunction) => {
@@ -14,16 +18,14 @@ async function bootstrap() {
     res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
     res.header('Access-Control-Allow-Credentials', 'true');
 
-    // Handle preflight OPTIONS request
     if (req.method === 'OPTIONS') {
-      // Respond with 200 OK for OPTIONS requests
       res.status(200).end();
     } else {
-      next(); // Proceed with the request if not an OPTIONS preflight
+      next();
     }
   });
 
-  // Enable CORS globally (you can remove this if middleware is sufficient)
+  // Enable CORS globally (optional, can remove if middleware is sufficient)
   app.enableCors({
     origin: 'http://127.0.0.1:5500',
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
@@ -31,6 +33,7 @@ async function bootstrap() {
     allowedHeaders: 'Content-Type, Authorization',
   });
 
+  // API Documentation setup
   const config = new DocumentBuilder()
     .setTitle('API Documentation')
     .setDescription('API documentation description')
@@ -40,6 +43,20 @@ async function bootstrap() {
 
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api-docs', app, document);
+
+  // Use Express-style route definitions with proper typing
+  const expressApp = app.getHttpAdapter().getInstance(); // Get the underlying Express app
+  expressApp.get('/passwordreset/token', (req: Request, res: Response) => {
+    res.sendFile(join(__dirname, '..', 'public', 'auth', 'registrationForm.html'));
+  });
+
+  expressApp.get('/auth/register', (req: Request, res: Response) => {
+    res.sendFile(join(__dirname, '..', 'public', 'auth', 'registrationForm.html'));
+  });
+
+  expressApp.get('/signup/confirm', (req: Request, res: Response) => {
+    res.sendFile(join(__dirname, '..', 'public', 'auth', 'registrationForm.html'));
+  });
 
   await app.listen(3000);
   console.log('Server listening on http://localhost:3000');

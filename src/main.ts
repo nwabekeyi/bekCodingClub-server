@@ -35,8 +35,8 @@ async function bootstrap() {
 
   // API Documentation setup
   const config = new DocumentBuilder()
-    .setTitle('API Documentation')
-    .setDescription('API documentation description')
+    .setTitle('Beks Coding Club')
+    .setDescription('API documentation description for beks community foundation track')
     .setVersion('1.0')
     .addBearerAuth({ type: 'http', scheme: 'bearer', bearerFormat: 'JWT' }, 'bearerAuth')
     .build();
@@ -47,15 +47,15 @@ async function bootstrap() {
   // Use Express-style route definitions with proper typing
   const expressApp = app.getHttpAdapter().getInstance(); // Get the underlying Express app
   expressApp.get('/passwordreset/token', (req: Request, res: Response) => {
-    res.sendFile(join(__dirname, '..', 'public', 'auth', 'registrationForm.html'));
+    res.sendFile(join(process.cwd(), 'src/public/auth/registrationForm.html'));
   });
 
   expressApp.get('/auth/register', (req: Request, res: Response) => {
-    res.sendFile(join(__dirname, '..', 'public', 'auth', 'registrationForm.html'));
+    res.sendFile(join(process.cwd(), 'src/public/auth/registrationForm.html'));
   });
 
   expressApp.get('/signup/confirm', (req: Request, res: Response) => {
-    res.sendFile(join(__dirname, '..', 'public', 'auth', 'registrationForm.html'));
+    res.sendFile(join(process.cwd(), 'src/public/auth/registrationForm.html'));
   });
 
   await app.listen(3000);

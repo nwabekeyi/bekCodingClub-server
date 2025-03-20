@@ -104,7 +104,7 @@ export class AuthService {
     //generate random code
     const confirmationToken = require('crypto').randomBytes(32).toString('hex');
     
-    //send cod 
+    //send resgistration link
     const registrationLink = `${this.domainUrl}/signup/confirm?token=${confirmationToken}&email=${encodeURIComponent(email)}`;
 
     await this.emailService.sendEmail({

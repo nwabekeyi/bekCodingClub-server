@@ -13,7 +13,7 @@ async function bootstrap() {
 
   // Middleware to handle CORS and OPTIONS requests
   app.use((req: Request, res: Response, next: NextFunction) => {
-    res.header('Access-Control-Allow-Origin', 'http://127.0.0.1');
+    res.header('Access-Control-Allow-Origin','http://127.0.0.1:5500, http://127.0.0.1:5501');
     res.header('Access-Control-Allow-Methods', 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS');
     res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
     res.header('Access-Control-Allow-Credentials', 'true');
@@ -27,8 +27,7 @@ async function bootstrap() {
 
   // Enable CORS globally (optional, can remove if middleware is sufficient)
   app.enableCors({
-    origin: 'http://127.0.0.1',
-    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
+    origin: ['http://127.0.0.1:5500', 'http://127.0.0.1:5501'],    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     credentials: true,
     allowedHeaders: 'Content-Type, Authorization',
   });

@@ -13,7 +13,7 @@ async function bootstrap() {
 
   // Middleware to handle CORS and OPTIONS requests
   app.use((req: Request, res: Response, next: NextFunction) => {
-    const allowedOrigins = ['http://127.0.0.1:5500', 'http://127.0.0.1:5501'];
+    const allowedOrigins = ['http://127.0.0.1:5500', 'http://127.0.0.1:5501', 'https://beks-coding-club-foundation-track.vercel.app/'];
     const origin = req.headers.origin as string;
   
     if (allowedOrigins.includes(origin)) {
@@ -32,19 +32,12 @@ async function bootstrap() {
   });
   
   app.enableCors({
-    origin: ['http://127.0.0.1:5500', 'http://127.0.0.1:5501'],
+    origin: ['http://127.0.0.1:5500', 'http://127.0.0.1:5501', 'https://beks-coding-club-foundation-track.vercel.app/'],
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     credentials: true,
     allowedHeaders: 'Content-Type, Authorization',
   });
   
-
-  // Enable CORS globally (optional, can remove if middleware is sufficient)
-  app.enableCors({
-    origin: ['http://127.0.0.1:5500', 'http://127.0.0.1:5501'],    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
-    credentials: true,
-    allowedHeaders: 'Content-Type, Authorization',
-  });
 
   // API Documentation setup
   const config = new DocumentBuilder()

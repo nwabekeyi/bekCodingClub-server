@@ -52,7 +52,7 @@ export class AuthService {
     if (role === $Enums.Role.admin) {
       token = this.jwtService.sign(payload, { expiresIn: '1h' });
     } else if (role === $Enums.Role.student) {
-      token = this.jwtService.sign(payload, { expiresIn: '30m' });
+      token = this.jwtService.sign(payload, { expiresIn: '5h' });
     } else {
       token = this.jwtService.sign(payload);
     }
@@ -77,7 +77,7 @@ export class AuthService {
       data: { resetPasswordToken: resetToken },
     });
 
-    const resetLink = `${this.domainUrl}/passwordreset/token?token=${resetToken}&email=${encodeURIComponent(email)}`; // Fixed typo: 'toekn' -> 'token'
+    const resetLink = `${this.domainUrl}/Signup/resetPassword.html/token?token=${resetToken}&email=${encodeURIComponent(email)}`; // Fixed typo: 'toekn' -> 'token'
 
     await this.emailService.sendEmail({
       to: email,
@@ -105,7 +105,7 @@ export class AuthService {
     const confirmationToken = require('crypto').randomBytes(32).toString('hex');
     
     //send resgistration link
-    const registrationLink = `${this.domainUrl}/signup/confirm?token=${confirmationToken}&email=${encodeURIComponent(email)}`;
+    const registrationLink = `${this.domainUrl}/Auth/Signup/registrationForm.html?token=${confirmationToken}&email=${encodeURIComponent(email)}`;
 
     await this.emailService.sendEmail({
       to: email,

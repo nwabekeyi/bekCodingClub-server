@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable, UnauthorizedException, NotFoundException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from 'src/core/service/prisma.service';
 import * as bcrypt from 'bcryptjs';
@@ -22,7 +22,7 @@ export class AuthService {
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
     private readonly emailService: EmailService,
-    private readonly firebaseService: FirebaseAdminService, // Inject FirebaseAdminService
+    private readonly firebaseService: FirebaseAdminService,
   ) {
     this.domainUrl = process.env.DOMAIN || 'http://localhost:3000';
   }
@@ -77,7 +77,7 @@ export class AuthService {
       data: { resetPasswordToken: resetToken },
     });
 
-    const resetLink = `${this.domainUrl}/Signup/resetPassword.html/token?token=${resetToken}&email=${encodeURIComponent(email)}`; // Fixed typo: 'toekn' -> 'token'
+    const resetLink = `${this.domainUrl}/Signup/resetPassword.html/token?token=${resetToken}&email=${encodeURIComponent(email)}`;
 
     await this.emailService.sendEmail({
       to: email,
@@ -101,10 +101,21 @@ export class AuthService {
       throw new UnauthorizedException('User is not a club member');
     }
 
-    //generate random code
-    const confirmationToken = require('crypto').randomBytes(32).toString('hex');
-    
-    //send resgistration link
+    // Generate random token with expiration (1 hour)
+    const confirmationToken = this.jwtService.sign(
+      { email, createdAt: Date.now() },
+      { expiresIn: '1h' }
+    );
+
+    // Store token in RegistrationTokens with email
+    await this.prisma.registrationTokens.create({
+      data: {
+        token: confirmationToken,
+        email,
+      },
+    });
+
+    // Send registration link
     const registrationLink = `${this.domainUrl}/Auth/Signup/registrationForm.html?token=${confirmationToken}&email=${encodeURIComponent(email)}`;
 
     await this.emailService.sendEmail({
@@ -169,18 +180,70 @@ export class AuthService {
 
     return { message: 'Registration confirmed successfully' };
   }
+
+  // Cleanup expired tokens (run periodically)
+  async cleanupExpiredTokens() {
+    const tokens = await this.prisma.registrationTokens.findMany();
+    const oneHourInMs = 60 * 60 * 1000; // 1 hour in milliseconds
+
+    for (const tokenRecord of tokens) {
+      try {
+        const decoded = this.jwtService.verify(tokenRecord.token);
+        const createdAt = decoded.createdAt;
+        if (Date.now() - createdAt > oneHourInMs) {
+          await this.prisma.registrationTokens.delete({
+            where: { token: tokenRecord.token },
+          });
+        }
+      } catch (error) {
+        // If token is invalid or expired, delete it
+        await this.prisma.registrationTokens.delete({
+          where: { token: tokenRecord.token },
+        });
+      }
+    }
+  }
 }
 
 @Injectable()
 export class UserService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService, private jwtService: JwtService) {}
 
   async createUser(createUserDto: CreateUserDto) {
-    const { email, password, role, firstName, lastName, phoneNumber, progress } = createUserDto;
+    const { email, password, role, firstName, lastName, phoneNumber, progress, token } = createUserDto;
+
+    // Verify token and email in RegistrationTokens
+    const registrationToken = await this.prisma.registrationTokens.findUnique({
+      where: { token },
+    });
+
+    if (!registrationToken || registrationToken.email !== email) {
+      throw new NotFoundException('Token not found or expired');
+    }
+
+    // Verify token expiration (1 hour)
+    try {
+      const decoded = this.jwtService.verify(token);
+      const createdAt = decoded.createdAt;
+      const oneHourInMs = 60 * 60 * 1000; // 1 hour in milliseconds
+      if (Date.now() - createdAt > oneHourInMs) {
+        await this.prisma.registrationTokens.delete({ where: { token } });
+        throw new NotFoundException('Token not found or expired');
+      }
+    } catch (error) {
+      await this.prisma.registrationTokens.delete({ where: { token } });
+      throw new NotFoundException('Token not found or expired');
+    }
+
+    // Check if user already exists
+    const existingUser = await this.prisma.user.findUnique({ where: { email } });
+    if (existingUser) {
+      throw new UnauthorizedException('User with this email already exists');
+    }
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    return this.prisma.user.create({
+    const user = await this.prisma.user.create({
       data: {
         email,
         password: hashedPassword,
@@ -191,6 +254,13 @@ export class UserService {
         progress: progress ?? 0,
       },
     });
+
+    // Delete token after successful user creation
+    await this.prisma.registrationTokens.delete({
+      where: { token },
+    });
+
+    return user;
   }
 
   async getUserById(userId: number) {

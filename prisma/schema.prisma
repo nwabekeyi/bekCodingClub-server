@@ -42,3 +42,9 @@ model CodeQuery {
   userId      Int      // Foreign key linking to User
   user        User     @relation(fields: [userId], references: [id]) // Relation definition
 }
+
+model RegistrationTokens {
+  id    Int    @id @default(autoincrement())
+  token String @unique // The registration token string
+  email String // Associated email for the token
+}

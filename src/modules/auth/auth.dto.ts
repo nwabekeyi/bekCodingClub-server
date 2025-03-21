@@ -42,6 +42,10 @@ export class CreateUserDto {
   @IsString()
   phoneNumber?: string;
 
+  @ApiProperty({ description: 'User phone number'})
+  @IsString()
+  token: string;
+
   @ApiProperty({ description: 'User progress percentage', default: 0.0 })
   @IsOptional()
   @IsString()

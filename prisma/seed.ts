@@ -26,8 +26,10 @@ async function main() {
       progress: 85.0,
       role: $Enums.Role.admin,
       currentTopicId: 1,
-      lastTaskId: 0, // Changed from currentTaskId to lastTaskId to match your model
-      resetPasswordToken: null, // Add resetPasswordToken field
+      lastTaskId: 0,
+      resetPasswordToken: null,
+      startDate: new Date('2024-01-01'), // Add start date
+      status: $Enums.Status.active, // Add status
     },
     {
       email: 'jane.smith@example.com',
@@ -35,13 +37,15 @@ async function main() {
       firstName: 'Jane',
       lastName: 'Smith',
       phoneNumber: '987-654-3210',
-      totalScore: 0, // Initial totalScore
-      averageScore: 0.0, // Initial averageScore
+      totalScore: 0,
+      averageScore: 0.0,
       progress: 92.5,
       role: $Enums.Role.student,
       currentTopicId: 2,
       lastTaskId: 0,
-      resetPasswordToken: null, // Add resetPasswordToken field
+      resetPasswordToken: null,
+      startDate: new Date('2024-02-01'), // Add start date
+      status: $Enums.Status.active, // Add status
     },
     {
       email: 'alex.jones@example.com',
@@ -49,17 +53,19 @@ async function main() {
       firstName: 'Alex',
       lastName: 'Jones',
       phoneNumber: '555-555-5555',
-      totalScore: 0, // Initial totalScore
-      averageScore: 0.0, // Initial averageScore
+      totalScore: 0,
+      averageScore: 0.0,
       progress: 75.0,
       role: $Enums.Role.student,
       currentTopicId: 3,
       lastTaskId: 0,
-      resetPasswordToken: null, // Add resetPasswordToken field
+      resetPasswordToken: null,
+      startDate: new Date('2024-03-01'), // Add start date
+      status: $Enums.Status.restricted, // Add status
     },
   ];
 
-  const createdUsers: User[] = []; // Explicitly type as User[]
+  const createdUsers: User[] = [];
   for (const user of users) {
     const hashedPassword = await bcrypt.hash(user.password, saltRounds);
     const createdUser = await prisma.user.create({
@@ -75,14 +81,16 @@ async function main() {
         role: user.role,
         currentTopicId: user.currentTopicId,
         lastTaskId: user.lastTaskId,
-        resetPasswordToken: user.resetPasswordToken, // Save resetPasswordToken
+        resetPasswordToken: user.resetPasswordToken,
+        startDate: user.startDate, // Include startDate
+        status: user.status, // Include status
       },
     });
     createdUsers.push(createdUser);
     console.log(`Created user: ${createdUser.email} with ID: ${createdUser.id}`);
   }
 
-  console.log('Users created with hashed passwords, current topic IDs, last task IDs, and initial scores');
+  console.log('Users created with hashed passwords, current topic IDs, last task IDs, start date, and status');
 
   // Seed CodeQuery entries linked to users using captured IDs
   const codeQueries = [
@@ -139,7 +147,7 @@ async function main() {
       });
 
       const totalScore = userCodeQueries.reduce((sum, query) => sum + (query.score || 0), 0);
-      const newLastTaskId = userCodeQueries.length; // Number of tasks completed
+      const newLastTaskId = userCodeQueries.length;
       const averageScore = newLastTaskId > 0 ? totalScore / newLastTaskId : 0;
 
       await prisma.user.update({

@@ -13,6 +13,13 @@ enum Role {
   admin
 }
 
+// Enum for user status
+enum Status {
+  not_started
+  active
+  restricted
+}
+
 model User {
   id               Int         @id @default(autoincrement())
   email            String      @unique
@@ -28,6 +35,8 @@ model User {
   lastTaskId       Int         @default(0) // Tracks last completed task
   resetPasswordToken String?   // Allows string or null, no default needed
   codeQueries      CodeQuery[] // One-to-many relationship with CodeQuery
+  startDate        DateTime?   // The date the user starts
+  status           Status      @default(not_started) // User status (not started, active, restricted)
 }
 
 model CodeQuery {

@@ -114,7 +114,7 @@ export class UserController {
 
 
   //update startDate
-  @Patch(':id/start-date')
+  @Patch('/start-date/:id')
   @UseGuards(AuthGuard) // Requires authentication
   @ApiBearerAuth('bearerAuth')
   @ApiOperation({ summary: 'Update user start date and set status to active (Authenticated users only)' })

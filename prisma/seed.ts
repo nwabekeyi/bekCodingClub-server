@@ -61,7 +61,7 @@ async function main() {
       lastTaskId: 0,
       resetPasswordToken: null,
       startDate: new Date('2024-03-01'), // Add start date
-      status: $Enums.Status.restricted, // Add status
+      status: $Enums.Status.not_started, // Add status
     },
   ];
 

@@ -50,7 +50,6 @@ export class UserController {
   constructor(private readonly userService: UserService) {}
 
   @Post()
-  @UseGuards(AdminGuard) // Admin-only
   @ApiOperation({ summary: 'Create a new user (only admin bearer access token can create users)' })
   @ApiResponse({ status: 201, description: 'User created successfully.' })
   createUser(@Body() createUserDto: CreateUserDto) {

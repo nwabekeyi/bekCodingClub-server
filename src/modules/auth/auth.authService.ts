@@ -296,4 +296,20 @@ export class UserService {
   async getAllUsers() {
     return this.prisma.user.findMany();
   }
+
+  //update start date of learning 
+  async updateUserStartDate(userId: number, startDate: string) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) {
+      throw new NotFoundException(`User with ID ${userId} not found`);
+    }
+
+    return this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        startDate: new Date(startDate), // Convert string to Date object
+        status: 'active', // Set status to "active"
+      },
+    });
+  }
 }

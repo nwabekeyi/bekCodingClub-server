@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEmail, IsNotEmpty, IsOptional, IsString, IsEnum, MinLength} from 'class-validator';
+import { IsEmail, IsNotEmpty, IsOptional, IsString, IsEnum, MinLength, IsInt, IsDateString} from 'class-validator';
 import { $Enums } from '@prisma/client';  // Import Prisma's enums
 
 export class LoginDto {
@@ -96,4 +96,16 @@ export class ForgotPasswordDto {
   @IsEmail({}, { message: 'Must be a valid email address' })
   @IsNotEmpty({ message: 'Email is required' })
   email: string;
+}
+
+export class UpdateStartDateDto {
+  @ApiProperty({ description: 'User ID', example: 1 })
+  @IsInt({ message: 'User ID must be an integer' })
+  @IsNotEmpty({ message: 'User ID is required' })
+  userId: number;
+
+  @ApiProperty({ description: 'Start date in ISO format', example: '2025-03-23' })
+  @IsDateString({}, { message: 'Start date must be a valid ISO date string (e.g., YYYY-MM-DD)' })
+  @IsNotEmpty({ message: 'Start date is required' })
+  startDate: string;
 }

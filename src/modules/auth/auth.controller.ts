@@ -1,7 +1,7 @@
-import { Controller, Req, Post, Body, Get, Param, Put, Delete, UseGuards, HttpCode, ForbiddenException } from '@nestjs/common';
+import { Controller, Req, Post, Body, Get, Param, Put, Patch, Delete, UseGuards, HttpCode, ForbiddenException } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { AuthService, UserService } from './auth.authService';
-import { LoginDto, CreateUserDto, FetchUserByEmailDto, ForgotPasswordDto, ResetPasswordDto, SendRegistrationLinkDto  } from './auth.dto';
+import { LoginDto, UpdateStartDateDto, CreateUserDto, FetchUserByEmailDto, ForgotPasswordDto, ResetPasswordDto, SendRegistrationLinkDto  } from './auth.dto';
 import { AuthGuard, AdminGuard } from './auth.authGard';
 
 
@@ -111,4 +111,40 @@ export class UserController {
   async getAllUsers() {
     return this.userService.getAllUsers();
   }
+
+
+  //update startDate
+  @Patch(':id/start-date')
+  @UseGuards(AuthGuard) // Requires authentication
+  @ApiBearerAuth('bearerAuth')
+  @ApiOperation({ summary: 'Update user start date and set status to active (Authenticated users only)' })
+  @ApiResponse({ status: 200, description: 'Start date updated and status set to active successfully' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden' })
+  @ApiResponse({ status: 404, description: 'User not found' })
+  async updateUserStartDate(
+    @Param('id') id: string,
+    @Body() updateStartDateDto: UpdateStartDateDto,
+    @Req() request: any
+  ) {
+    const userId = parseInt(id, 10);
+    const requestingUser = request.user; // From AuthGuard
+
+    // Restrict to admins or self-update
+    if (requestingUser.role !== 'admin' && requestingUser.sub !== userId) {
+      throw new ForbiddenException('You can only update your own start date or must be an admin');
+    }
+
+    // Ensure the userId from param matches the DTO
+    if (userId !== updateStartDateDto.userId) {
+      throw new ForbiddenException('User ID in path and body must match');
+    }
+
+    return this.userService.updateUserStartDate(userId, updateStartDateDto.startDate);
+  }
+
 }
+
+
+
+

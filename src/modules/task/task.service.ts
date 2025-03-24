@@ -10,9 +10,14 @@ import axios from 'axios';
 export class TaskService {
   private readonly logger = new CustomLogger(TaskService.name);
   private readonly apiUrl = 'https://chatgpt4-ai-chatbot.p.rapidapi.com/ask';
-  private readonly apiKey = process.env.AI_API_KEY // Store in .env in production
+  private readonly apiKey = process.env.AI_API_KEY;
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) {
+    this.logger.debug(`Initialized TaskService with API Key: ${this.apiKey || 'NOT SET'}`);
+    if (!this.apiKey) {
+      this.logger.error('AI_API_KEY is not set in environment variables');
+    }
+  }
 
   async processCodeQuery(request: CodeQueryRequest): Promise<CodeResponseDto> {
     const { query, files, criteria, userId, currentTopicId, lastTaskId } = request;
@@ -37,7 +42,6 @@ export class TaskService {
       throw new BadRequestException('Valid last task ID is required');
     }
 
-    // Parse userId
     let parsedUserId: number;
     if (typeof userId === 'string') {
       parsedUserId = parseInt(userId, 10);
@@ -50,7 +54,6 @@ export class TaskService {
       throw new BadRequestException('User ID must be a string or number');
     }
 
-    // Validate user exists
     const user = await this.prisma.user.findUnique({ where: { id: parsedUserId } });
     if (!user) {
       throw new BadRequestException(`User with ID ${parsedUserId} not found`);
@@ -58,7 +61,6 @@ export class TaskService {
 
     let finalQuery = '';
 
-    // Handle file input
     if (files && files.length > 0) {
       if (files.length > 2) {
         throw new BadRequestException('Maximum of 2 files (HTML and CSS) allowed');
@@ -83,7 +85,6 @@ export class TaskService {
       finalQuery = query!;
     }
 
-    // Append grading instructions and criteria
     const aiInstructions = `
       You are an AI code reviewer. Review the following code and assign it a score out of 100 based on the provided criteria.
       Return your response in this format: 
@@ -92,15 +93,13 @@ export class TaskService {
       After reviewing, provide a detailed explanation.
       Here is the code to review:\n${finalQuery}\n\nGrading Criteria:\n${criteria}
     `;
-    finalQuery = aiInstructions;
 
-    this.logger.debug(`Final query sent to AI: ${finalQuery}`);
+    this.logger.debug(`Final query sent to AI: ${aiInstructions}`);
 
-    // Call RapidAPI
     try {
       const response = await axios.post(
         this.apiUrl,
-        { query: finalQuery },
+        { query: aiInstructions }, // Exact body format as curl
         {
           headers: {
             'Content-Type': 'application/json',
@@ -113,15 +112,12 @@ export class TaskService {
       const aiResponse = response.data.response;
       this.logger.debug(`AI response: ${aiResponse}`);
 
-      // Parse score and hints from AI response
       const scoreMatch = aiResponse.match(/Score: (\d+)/);
       const hintsMatch = aiResponse.match(/Hints: (.+?)(?=\n|$)/);
       const score = scoreMatch ? parseInt(scoreMatch[1], 10) : 0;
       const hints = hintsMatch ? hintsMatch[1] : 'No hints provided';
 
-      // Update user scores and save code query in a transaction
       const updatedUser = await this.prisma.$transaction(async (prisma) => {
-        // Save code query
         await prisma.codeQuery.create({
           data: {
             query: query || null,
@@ -134,12 +130,10 @@ export class TaskService {
           },
         });
 
-        // Calculate new scores
         const newTotalScore = user.totalScore + score;
-        const newLastTaskId = lastTaskId + 1; // Increment since this is a new task
+        const newLastTaskId = lastTaskId + 1;
         const newAverageScore = newLastTaskId > 0 ? newTotalScore / newLastTaskId : 0;
 
-        // Update user
         return prisma.user.update({
           where: { id: parsedUserId },
           data: {
@@ -153,16 +147,16 @@ export class TaskService {
 
       this.logger.debug(`Updated user - Total Score: ${updatedUser.totalScore}, Average Score: ${updatedUser.averageScore}`);
 
-      // Return response with updated scores
       return {
         score,
         hints,
         response: aiResponse,
         totalScore: updatedUser.totalScore,
-        averageScore: updatedUser.averageScore, // This is now number | null as per DTO
+        averageScore: updatedUser.averageScore,
       };
     } catch (error) {
-      this.logger.error('API call failed:', error.message);
+      this.logger.error(`API call failed: ${error.message}`);
+      this.logger.error(`Response status: ${error.response?.status}, Response data: ${JSON.stringify(error.response?.data)}`);
       throw new BadRequestException(`API call failed: ${error.message}`);
     }
   }

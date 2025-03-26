@@ -4,6 +4,7 @@ import { AppModule } from './app.module';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { join } from 'path';
 import { Request, Response, NextFunction } from 'express';
+import 'dotenv/config';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
@@ -63,6 +64,7 @@ async function bootstrap() {
   expressApp.get('/signup/confirm', (req: Request, res: Response) => {
     res.sendFile(join(process.cwd(), 'src/public/auth/registrationForm.html'));
   });
+
 
   await app.listen(3000);
   console.log('Server listening on http://localhost:3000');

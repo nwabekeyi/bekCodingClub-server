@@ -52,30 +52,21 @@ export class CodeResponseDto {
     description: 'Score assigned by the AI (0-100)',
     example: 85,
   })
+  @IsInt()
   score: number;
 
   @ApiProperty({
     description: 'Hints for improving the code',
     example: 'Use descriptive variable names instead of a, b',
   })
+  @IsString()
   hints: string;
 
-  @ApiProperty({
-    description: 'Full response from the AI, including score, hints, and explanation',
-    example: 'Score: 85\nHints: Use descriptive variable names instead of a, b\nExplanation: ...',
+  @ApiPropertyOptional({
+    description: 'Updated user object containing user details (optional)',
+    example: { id: 1, totalScore: 200, averageScore: 70, lastTaskId: 12, currentTopicId: 6 },
+    nullable: true,
   })
-  response: string;
-
-  @ApiProperty({
-    description: 'Total score of all tasks for this user',
-    example: 200,
-  })
-  totalScore: number;
-
-  @ApiProperty({
-    description: 'Average score across all tasks for this user',
-    example: 70,
-    nullable: true, // Allow null to match Prisma model
-  })
-  averageScore: number | null; // Changed to number | null
+  @IsOptional() // Make updatedUser optional
+  updatedUser?: any;
 }

@@ -3,23 +3,22 @@ import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from 'src/core/service/prisma.service';
 import { CustomLogger } from 'src/core/logger';
 import { CodeQueryRequest } from './task.interface';
-import { CodeResponseDto } from './task.dto';
 import axios from 'axios';
 
 @Injectable()
 export class TaskService {
   private readonly logger = new CustomLogger(TaskService.name);
-  private readonly apiUrl = 'https://chatgpt4-ai-chatbot.p.rapidapi.com/ask';
+  private readonly apiUrl = 'https://api.aimlapi.com/v1/chat/completions';
   private readonly apiKey = process.env.AI_API_KEY;
 
   constructor(private readonly prisma: PrismaService) {
-    this.logger.debug(`Initialized TaskService with API Key: ${this.apiKey || 'NOT SET'}`);
+    this.logger.debug(`Initialized TaskService with API Key: ${this.apiKey}`);
     if (!this.apiKey) {
       this.logger.error('AI_API_KEY is not set in environment variables');
     }
   }
 
-  async processCodeQuery(request: CodeQueryRequest): Promise<CodeResponseDto> {
+  async processCodeQuery(request: CodeQueryRequest): Promise<{ score: number; hints: string; updatedUser?: any }> {
     const { query, files, criteria, userId, currentTopicId, lastTaskId } = request;
 
     if (!query && (!files || files.length === 0)) {
@@ -42,18 +41,7 @@ export class TaskService {
       throw new BadRequestException('Valid last task ID is required');
     }
 
-    let parsedUserId: number;
-    if (typeof userId === 'string') {
-      parsedUserId = parseInt(userId, 10);
-      if (isNaN(parsedUserId)) {
-        throw new BadRequestException('Invalid User ID');
-      }
-    } else if (typeof userId === 'number') {
-      parsedUserId = userId;
-    } else {
-      throw new BadRequestException('User ID must be a string or number');
-    }
-
+    const parsedUserId = typeof userId === 'string' ? parseInt(userId, 10) : userId;
     const user = await this.prisma.user.findUnique({ where: { id: parsedUserId } });
     if (!user) {
       throw new BadRequestException(`User with ID ${parsedUserId} not found`);
@@ -77,7 +65,7 @@ export class TaskService {
         if (!htmlFile || !cssFile) {
           throw new BadRequestException('Two files must be HTML and CSS');
         }
-        finalQuery = `HTML Code:\n${htmlFile.content}\n\nCSS Code:\n${cssFile.content}`;
+        finalQuery = `HTML:\n${htmlFile.content}\nCSS:\n${cssFile.content}`;
       } else {
         finalQuery = fileContents[0].content;
       }
@@ -86,78 +74,91 @@ export class TaskService {
     }
 
     const aiInstructions = `
-      You are an AI code reviewer. Review the following code and assign it a score out of 100 based on the provided criteria.
-      Return your response in this format: 
-      Score: <number>
-      Hints: <improvement suggestions>
-      After reviewing, provide a detailed explanation.
-      Here is the code to review:\n${finalQuery}\n\nGrading Criteria:\n${criteria}
+      Review this code, score it 0-100 based on criteria.
+      Format: Score: <number>
+      Hints: <suggestions>
+      Explanation follows.
+      Code:\n${finalQuery}\nCriteria:\n${criteria}
     `;
 
     this.logger.debug(`Final query sent to AI: ${aiInstructions}`);
 
+    if (!this.apiKey) {
+      throw new BadRequestException('AI_API_KEY is missing');
+    }
+
     try {
       const response = await axios.post(
         this.apiUrl,
-        { query: aiInstructions }, // Exact body format as curl
+        {
+          model: 'chatgpt-4o-latest',
+          messages: [{ role: 'user', content: aiInstructions }],
+          frequency_penalty: 1,
+          logprobs: true,
+        },
         {
           headers: {
             'Content-Type': 'application/json',
-            'x-rapidapi-host': 'chatgpt4-ai-chatbot.p.rapidapi.com',
-            'x-rapidapi-key': this.apiKey,
+            'Authorization': `Bearer ${this.apiKey}`,
           },
-        },
+        }
       );
 
-      const aiResponse = response.data.response;
-      this.logger.debug(`AI response: ${aiResponse}`);
-
-      const scoreMatch = aiResponse.match(/Score: (\d+)/);
-      const hintsMatch = aiResponse.match(/Hints: (.+?)(?=\n|$)/);
+      const aiResponse = response.data.choices?.[0]?.message?.content || response.data;
+      const responseText = typeof aiResponse === 'string' ? aiResponse : aiResponse.text || JSON.stringify(aiResponse);
+      const scoreMatch = responseText.match(/Score: (\d+)/);
+      const hintsMatch = responseText.match(/Hints: (.+?)(?=\n|$)/);
       const score = scoreMatch ? parseInt(scoreMatch[1], 10) : 0;
       const hints = hintsMatch ? hintsMatch[1] : 'No hints provided';
 
-      const updatedUser = await this.prisma.$transaction(async (prisma) => {
-        await prisma.codeQuery.create({
-          data: {
-            query: query || null,
-            fileContent: files ? finalQuery : null,
-            fileNames: files ? files.map((f) => f.originalname) : [],
-            criteria,
-            score,
-            hints,
-            userId: parsedUserId,
-          },
+      const PASSING_SCORE = 50; // Define passing threshold
+
+      // Only update the user if the score is above 50
+      let updatedUser: any;
+      if (score > PASSING_SCORE) {
+        updatedUser = await this.prisma.$transaction(async (prisma) => {
+          await prisma.codeQuery.create({
+            data: {
+              query: query || null,
+              fileContent: files ? finalQuery : null,
+              fileNames: files ? files.map((f) => f.originalname) : [],
+              criteria,
+              score,
+              hints: null, // No hint sent if score is above 50
+              userId: parsedUserId,
+            },
+          });
+
+          const newTotalScore = user.totalScore + score;
+          const newLastTaskId = lastTaskId + 1;
+          const newAverageScore = newLastTaskId > 0 ? newTotalScore / newLastTaskId : 0;
+          const newCurrentTopicId = score >= PASSING_SCORE ? currentTopicId + 1 : currentTopicId; // Increment if passed
+
+          return prisma.user.update({
+            where: { id: parsedUserId },
+            data: {
+              totalScore: newTotalScore,
+              averageScore: newAverageScore,
+              lastTaskId: newLastTaskId,
+              currentTopicId: newCurrentTopicId,
+            },
+          });
         });
 
-        const newTotalScore = user.totalScore + score;
-        const newLastTaskId = lastTaskId + 1;
-        const newAverageScore = newLastTaskId > 0 ? newTotalScore / newLastTaskId : 0;
-
-        return prisma.user.update({
-          where: { id: parsedUserId },
-          data: {
-            totalScore: newTotalScore,
-            averageScore: newAverageScore,
-            lastTaskId: newLastTaskId,
-            currentTopicId: currentTopicId,
-          },
-        });
-      });
-
-      this.logger.debug(`Updated user - Total Score: ${updatedUser.totalScore}, Average Score: ${updatedUser.averageScore}`);
+        this.logger.debug(`Updated user - Total Score: ${updatedUser.totalScore}, Average Score: ${updatedUser.averageScore}`);
+      }
 
       return {
         score,
-        hints,
-        response: aiResponse,
-        totalScore: updatedUser.totalScore,
-        averageScore: updatedUser.averageScore,
+        hints: score < PASSING_SCORE ? hints : '', // Send hints if score is less than 50
+        updatedUser: score > PASSING_SCORE ? updatedUser : null, // Only update user if score is greater than 50
       };
     } catch (error) {
       this.logger.error(`API call failed: ${error.message}`);
       this.logger.error(`Response status: ${error.response?.status}, Response data: ${JSON.stringify(error.response?.data)}`);
-      throw new BadRequestException(`API call failed: ${error.message}`);
+      throw new BadRequestException(
+        `API call failed: ${error.response?.status === 401 ? 'Invalid or unauthorized API key' : error.message}`
+      );
     }
   }
 }

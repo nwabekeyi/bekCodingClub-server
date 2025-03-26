@@ -63,11 +63,28 @@ async function main() {
       startDate: new Date('2024-03-01'), // Add start date
       status: $Enums.Status.not_started, // Add status
     },
+    {
+      id: 111,
+      email: 'chidi90simeon@gmail.com',
+      password: '$2b$10$TOrR9geIDfCo/6ITlZ/O/uDv7ofTNd5boH42lgitZeyOfRgUV6jW.', // Already hashed password
+      firstName: 'Chidiebere',
+      lastName: 'Nwabekeyi',
+      phoneNumber: null,
+      totalScore: 0,
+      averageScore: 0,
+      progress: 0,
+      role: $Enums.Role.student,
+      currentTopicId: 1,
+      lastTaskId: 0,
+      resetPasswordToken: null,
+      startDate: new Date('2025-03-25'), // Add start date
+      status: $Enums.Status.active, // Add status
+    },
   ];
 
   const createdUsers: User[] = [];
   for (const user of users) {
-    const hashedPassword = await bcrypt.hash(user.password, saltRounds);
+    const hashedPassword = user.password.includes('$2b$') ? user.password : await bcrypt.hash(user.password, saltRounds);
     const createdUser = await prisma.user.create({
       data: {
         email: user.email,

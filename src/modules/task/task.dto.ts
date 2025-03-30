@@ -1,5 +1,5 @@
 // src/modules/task/task.dto.ts
-import { IsString, IsOptional, IsNotEmpty, MaxLength, IsInt } from 'class-validator';
+import { IsString, IsOptional, IsNotEmpty, MaxLength, IsInt, IsUrl} from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CodeReviewDto {
@@ -70,3 +70,14 @@ export class CodeResponseDto {
   @IsOptional() // Make updatedUser optional
   updatedUser?: any;
 }
+
+export class SubmitFinalProjectDto {
+  @IsNotEmpty({ message: 'Project URL is required' })
+  @IsUrl({}, { message: 'Must be a valid URL' })
+  projectUrl: string;
+
+  @IsNotEmpty({ message: 'User ID is required' })
+  @IsInt({ message: 'User ID must be an integer' })
+  userId: number;
+}
+

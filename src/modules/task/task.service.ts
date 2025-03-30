@@ -1,8 +1,8 @@
-// src/modules/task/task.service.ts
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from 'src/core/service/prisma.service';
 import { CustomLogger } from 'src/core/logger';
 import { CodeQueryRequest } from './task.interface';
+import { EmailService } from 'src/core/emailService'; // Import EmailService
 import axios from 'axios';
 
 @Injectable()
@@ -11,13 +11,17 @@ export class TaskService {
   private readonly apiUrl = 'https://api.aimlapi.com/v1/chat/completions';
   private readonly apiKey = process.env.AI_API_KEY;
 
-  constructor(private readonly prisma: PrismaService) {
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly emailService: EmailService, // Inject EmailService
+  ) {
     this.logger.debug(`Initialized TaskService with API Key: ${this.apiKey}`);
     if (!this.apiKey) {
       this.logger.error('AI_API_KEY is not set in environment variables');
     }
   }
 
+  // Existing processCodeQuery method (unchanged)
   async processCodeQuery(request: CodeQueryRequest): Promise<{ score: number; hints: string; updatedUser?: any }> {
     const { query, files, criteria, userId, currentTopicId, lastTaskId } = request;
 
@@ -111,9 +115,8 @@ export class TaskService {
       const score = scoreMatch ? parseInt(scoreMatch[1], 10) : 0;
       const hints = hintsMatch ? hintsMatch[1] : 'No hints provided';
 
-      const PASSING_SCORE = 50; // Define passing threshold
+      const PASSING_SCORE = 50;
 
-      // Only update the user if the score is above 50
       let updatedUser: any;
       if (score > PASSING_SCORE) {
         updatedUser = await this.prisma.$transaction(async (prisma) => {
@@ -124,7 +127,7 @@ export class TaskService {
               fileNames: files ? files.map((f) => f.originalname) : [],
               criteria,
               score,
-              hints: null, // No hint sent if score is above 50
+              hints: null,
               userId: parsedUserId,
             },
           });
@@ -132,7 +135,7 @@ export class TaskService {
           const newTotalScore = user.totalScore + score;
           const newLastTaskId = lastTaskId + 1;
           const newAverageScore = newLastTaskId > 0 ? newTotalScore / newLastTaskId : 0;
-          const newCurrentTopicId = score >= PASSING_SCORE ? currentTopicId + 1 : currentTopicId; // Increment if passed
+          const newCurrentTopicId = score >= PASSING_SCORE ? currentTopicId + 1 : currentTopicId;
 
           return prisma.user.update({
             where: { id: parsedUserId },
@@ -150,8 +153,8 @@ export class TaskService {
 
       return {
         score,
-        hints: score < PASSING_SCORE ? hints : '', // Send hints if score is less than 50
-        updatedUser: score > PASSING_SCORE ? updatedUser : null, // Only update user if score is greater than 50
+        hints: score < PASSING_SCORE ? hints : '',
+        updatedUser: score > PASSING_SCORE ? updatedUser : null,
       };
     } catch (error) {
       this.logger.error(`API call failed: ${error.message}`);
@@ -159,6 +162,53 @@ export class TaskService {
       throw new BadRequestException(
         `API call failed: ${error.response?.status === 401 ? 'Invalid or unauthorized API key' : error.message}`
       );
+    }
+  }
+
+  // New method for final project submission
+  async submitFinalProject(projectUrl: string, projectPicture: Express.Multer.File, userId: number) {
+    if (!projectUrl) {
+      throw new BadRequestException('Project URL is required');
+    }
+    if (!projectPicture) {
+      throw new BadRequestException('Project picture file is required');
+    }
+
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) {
+      throw new BadRequestException(`User with ID ${userId} not found`);
+    }
+
+    // Prepare email data
+    const emailOptions = {
+      to: 'chidi90simeon@gmail.com',
+      subject: `Final Project Submission from ${user.firstName} ${user.lastName || ''}`,
+      template: 'finalProjectSubmission',
+      context: {
+        firstName: user.firstName,
+        lastName: user.lastName || '',
+        projectUrl,
+        userId,
+      },
+      attachments: [
+        {
+          filename: projectPicture.originalname,
+          content: projectPicture.buffer,
+          contentType: projectPicture.mimetype,
+        },
+      ],
+    };
+
+    try {
+      await this.emailService.sendEmail(emailOptions);
+      this.logger.debug(`Final project email sent for user ${userId}`);
+
+    
+
+      return { message: 'Final project submitted successfully' };
+    } catch (error) {
+      this.logger.error(`Failed to submit final project: ${error.message}`);
+      throw new BadRequestException(`Failed to submit final project: ${error.message}`);
     }
   }
 }

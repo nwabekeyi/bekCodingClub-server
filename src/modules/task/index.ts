@@ -4,6 +4,7 @@ import { TaskService } from './task.service';
 import { PrismaService } from 'src/core/service/prisma.service'; // Assuming you have a Prisma service
 import { MulterModule } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
+import { EmailService } from 'src/core/emailService';
 
 @Module({
   imports: [
@@ -12,6 +13,6 @@ import { memoryStorage } from 'multer';
     }),
   ],
   controllers: [TaskController],
-  providers: [TaskService, PrismaService],
+  providers: [TaskService, PrismaService, EmailService],
 })
 export class TaskModule {}

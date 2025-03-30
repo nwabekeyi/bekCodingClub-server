@@ -24,5 +24,10 @@ import { FirebaseAdminService } from 'src/core/firebase-admin/firebase-admin.ser
     FirebaseAdminService
   ],
   controllers: [AuthController, UserController],
+  exports: [
+    JwtModule,   // Export JwtModule for JwtService access
+    AuthGuard,   // Export AuthGuard for use in other modules
+    AdminGuard,  // Export AdminGuard for use in other modules
+  ],
 })
 export class AuthModule {}

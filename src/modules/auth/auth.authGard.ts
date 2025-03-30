@@ -8,14 +8,14 @@ export class AuthGuard implements CanActivate {
   canActivate(context: ExecutionContext): boolean {
     const request = context.switchToHttp().getRequest();
     const authHeader = request.headers.authorization;
-    console.log(request.headers)
-    
+    console.log(request.headers);
+
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       throw new UnauthorizedException('Access token is missing or invalid');
     }
 
     const token = authHeader.split(' ')[1];
-    
+
     try {
       const decoded = this.jwtService.verify(token);
       request.user = decoded; // Attach the decoded user to the request
@@ -33,7 +33,7 @@ export class AdminGuard extends AuthGuard {
   }
 
   canActivate(context: ExecutionContext): boolean {
-    const isAuthenticated = super.canActivate(context);
+    const isAuthenticated = super.canActivate(context); // Call parent logic
     if (!isAuthenticated) return false;
 
     const request = context.switchToHttp().getRequest();

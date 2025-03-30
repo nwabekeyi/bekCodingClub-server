@@ -52,7 +52,7 @@ export class AuthService {
     if (role === $Enums.Role.admin) {
       token = this.jwtService.sign(payload, { expiresIn: '1h' });
     } else if (role === $Enums.Role.student) {
-      token = this.jwtService.sign(payload, { expiresIn: '5h' });
+      token = this.jwtService.sign(payload, { expiresIn: '24h' });
     } else {
       token = this.jwtService.sign(payload);
     }

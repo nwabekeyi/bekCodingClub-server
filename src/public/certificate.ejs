@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Certificate of Completion</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      margin: 0;
+      padding: 50px;
+      width: 842px; /* A4 landscape width in px at 96dpi */
+      height: 595px; /* A4 landscape height in px at 96dpi */
+      box-sizing: border-box;
+    }
+    .border {
+      border: 2px solid #0052cc;
+      padding: 20px;
+      height: 100%;
+      box-sizing: border-box;
+    }
+    h1 {
+      color: #0052cc;
+      font-size: 30px;
+      margin: 0;
+    }
+    h2 {
+      color: #333;
+      font-size: 20px;
+      margin: 10px 0;
+    }
+    h3 {
+      font-size: 18px;
+      margin: 10px 0;
+    }
+    .name {
+      color: #2684FF;
+      font-size: 24px;
+      margin: 20px 0;
+    }
+    p {
+      font-size: 16px;
+      color: #333;
+      margin: 10px 0;
+    }
+    .footer {
+      font-size: 12px;
+      color: #777;
+      position: absolute;
+      bottom: 60px;
+      width: 100%;
+      left: 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="border">
+    <h1>Certificate of Completion</h1>
+    <h2>Beks Coding Club Foundation Track</h2>
+    <h3>Fundamentals of HTML and CSS</h3>
+    <p>This certifies that</p>
+    <div class="name"><%- firstName %> <%- lastName %>/div>
+    <p>has successfully completed the course on</p>
+    <p>Date: <%- completionDate %></p>
+    <div class="footer">Issued by Beks Coding Club</div>
+  </div>
+</body>
+</html>

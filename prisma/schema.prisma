@@ -18,6 +18,7 @@ enum Status {
   not_started
   active
   restricted
+  completed
 }
 
 model User {

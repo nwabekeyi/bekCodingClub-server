@@ -31,7 +31,7 @@ async function bootstrap() {
       next();
     }
   });
-  
+
   app.enableCors({
     origin: ['http://127.0.0.1:5500', 'http://127.0.0.1:5501', 'https://beks-coding-club-foundation-track.vercel.app'],
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',

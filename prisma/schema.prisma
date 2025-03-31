@@ -38,6 +38,7 @@ model User {
   codeQueries      CodeQuery[] // One-to-many relationship with CodeQuery
   startDate        DateTime?   // The date the user starts
   status           Status      @default(not_started) // User status (not started, active, restricted)
+  certificateUrl   String      @default("")
 }
 
 model CodeQuery {

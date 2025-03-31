@@ -3,12 +3,16 @@ import { EmailService } from 'src/core/emailService';
 import { generateCertificate } from '../../utils/generateCertificate';
 import { CustomLogger } from 'src/core/logger';
 import { configureCloudinary } from 'src/config/cloudinary.config';
+import { PrismaService } from 'src/core/service/prisma.service'; // Import Prisma service
 
 @Injectable()
 export class CertificateService {
   private readonly logger = new CustomLogger(CertificateService.name);
 
-  constructor(private readonly emailService: EmailService) {
+  constructor(
+    private readonly emailService: EmailService,
+    private readonly prisma: PrismaService // Inject PrismaService for database operations
+  ) {
     configureCloudinary(); // Initialize Cloudinary
   }
 
@@ -16,6 +20,15 @@ export class CertificateService {
     const { firstName, lastName, email } = dto;
 
     try {
+      // Find user by email
+      const user = await this.prisma.user.findUnique({
+        where: { email },
+      });
+
+      if (!user) {
+        throw new BadRequestException('User not found');
+      }
+
       // Generate certificate download link
       const downloadLink = await generateCertificate(firstName, lastName);
       if (!downloadLink || !downloadLink.startsWith('https://')) {
@@ -23,6 +36,15 @@ export class CertificateService {
         throw new BadRequestException('Failed to generate a valid certificate link');
       }
       this.logger.debug(`Generated download link: ${downloadLink}`);
+
+      // Update user's certificate URL
+      await this.prisma.user.update({
+        where: { email },
+        data: {
+          certificateUrl: downloadLink,
+        },
+      });
+      this.logger.debug(`Updated certificate URL for user ${email}`);
 
       // Define email options
       const emailOptions = {

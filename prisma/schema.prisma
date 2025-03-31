@@ -3,59 +3,57 @@ generator client {
 }
 
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
-// Enum for user roles
+model User {
+  id                 Int         @id @default(autoincrement())
+  email              String      @unique
+  password           String
+  firstName          String?
+  lastName           String?
+  phoneNumber        String?
+  progress           Int         @default(0)
+  role               Role
+  currentTopicId     Int         @default(1)
+  averageScore       Int?        @default(0)
+  lastTaskId         Int         @default(0)
+  totalScore         Int         @default(0)
+  resetPasswordToken String?
+  startDate          DateTime?
+  status             Status      @default(not_started)
+  certificateUrl     String?
+  codeQueries        CodeQuery[]
+}
+
+model CodeQuery {
+  id          Int      @id @default(autoincrement())
+  query       String?
+  fileContent String?
+  fileNames   String[]
+  criteria    String
+  score       Int?
+  hints       String?
+  createdAt   DateTime @default(now())
+  userId      Int
+  user        User     @relation(fields: [userId], references: [id])
+}
+
+model RegistrationTokens {
+  id    Int    @id @default(autoincrement())
+  token String @unique
+  email String
+}
+
 enum Role {
   student
   admin
 }
 
-// Enum for user status
 enum Status {
   not_started
   active
   restricted
   completed
-}
-
-model User {
-  id               Int         @id @default(autoincrement())
-  email            String      @unique
-  password         String
-  firstName        String?
-  lastName         String?
-  phoneNumber      String?
-  totalScore       Int         @default(0) // Total score for all CodeQuery entries
-  averageScore     Int?        @default(0) // Average score calculated as totalScore / lastTaskId
-  progress         Int         @default(0) // Progress as percentage (0.0 to 100.0)
-  role             Role
-  currentTopicId   Int         @default(1) // Tracks current topic
-  lastTaskId       Int         @default(0) // Tracks last completed task
-  resetPasswordToken String?   // Allows string or null, no default needed
-  codeQueries      CodeQuery[] // One-to-many relationship with CodeQuery
-  startDate        DateTime?   // The date the user starts
-  status           Status      @default(not_started) // User status (not started, active, restricted)
-  certificateUrl   String      @default("")
-}
-
-model CodeQuery {
-  id          Int      @id @default(autoincrement())
-  query       String?  // Direct query string (if no files)
-  fileContent String?  // Combined content if files are uploaded
-  fileNames   String[] // Original file names (if files uploaded)
-  criteria    String   // Grading criteria from frontend
-  score       Int?     // AI-assigned score (0-100)
-  hints       String?  // AI-provided improvement hints
-  createdAt   DateTime @default(now())
-  userId      Int      // Foreign key linking to User
-  user        User     @relation(fields: [userId], references: [id]) // Relation definition
-}
-
-model RegistrationTokens {
-  id    Int    @id @default(autoincrement())
-  token String @unique // The registration token string
-  email String // Associated email for the token
 }

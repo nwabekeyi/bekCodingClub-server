@@ -1,12 +1,16 @@
 import { PrismaClient, $Enums } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
+
 const prisma = new PrismaClient();
+
 async function main() {
     const saltRounds = 10;
-    await prisma.codeQuery.deleteMany({});
-    console.log('Existing CodeQuery records cleared');
+    
+    // Clear existing user records
     await prisma.user.deleteMany({});
     console.log('Existing User records cleared');
+
+    // Define users to be created
     const users = [
         {
             email: 'john.doe@example.com',
@@ -23,6 +27,7 @@ async function main() {
             resetPasswordToken: null,
             startDate: new Date('2024-01-01'),
             status: $Enums.Status.active,
+            certificateUrl: ''
         },
         {
             email: 'jane.smith@example.com',
@@ -39,6 +44,7 @@ async function main() {
             resetPasswordToken: null,
             startDate: new Date('2024-02-01'),
             status: $Enums.Status.active,
+            certificateUrl: ''
         },
         {
             email: 'alex.jones@example.com',
@@ -55,6 +61,7 @@ async function main() {
             resetPasswordToken: null,
             startDate: new Date('2024-03-01'),
             status: $Enums.Status.not_started,
+            certificateUrl: ''
         },
         {
             id: 111,
@@ -72,13 +79,32 @@ async function main() {
             resetPasswordToken: null,
             startDate: new Date('2025-03-25'),
             status: $Enums.Status.active,
-        },
+            certificateUrl: ''
+        }
     ];
-    const createdUsers = [];
+
+    // Upsert users to avoid replacing data if already existing
     for (const user of users) {
         const hashedPassword = user.password.includes('$2b$') ? user.password : await bcrypt.hash(user.password, saltRounds);
-        const createdUser = await prisma.user.create({
-            data: {
+        const upsertedUser = await prisma.user.upsert({
+            where: { email: user.email },
+            update: {
+                password: hashedPassword,
+                firstName: user.firstName,
+                lastName: user.lastName,
+                phoneNumber: user.phoneNumber,
+                totalScore: user.totalScore,
+                averageScore: user.averageScore,
+                progress: user.progress,
+                role: user.role,
+                currentTopicId: user.currentTopicId,
+                lastTaskId: user.lastTaskId,
+                resetPasswordToken: user.resetPasswordToken,
+                startDate: user.startDate,
+                status: user.status,
+                certificateUrl: user.certificateUrl
+            },
+            create: {
                 email: user.email,
                 password: hashedPassword,
                 firstName: user.firstName,
@@ -93,82 +119,20 @@ async function main() {
                 resetPasswordToken: user.resetPasswordToken,
                 startDate: user.startDate,
                 status: user.status,
-            },
+                certificateUrl: user.certificateUrl
+            }
         });
-        createdUsers.push(createdUser);
-        console.log(`Created user: ${createdUser.email} with ID: ${createdUser.id}`);
+        console.log(`Upserted user: ${upsertedUser.email}`);
     }
-    console.log('Users created with hashed passwords, current topic IDs, last task IDs, start date, and status');
-    const codeQueries = [
-        {
-            query: 'function add(a, b) { return a + b; }',
-            fileContent: null,
-            fileNames: [],
-            criteria: 'Check for readability and efficiency',
-            score: 85,
-            hints: 'Use descriptive variable names instead of a, b',
-            userId: createdUsers[0].id,
-        },
-        {
-            query: null,
-            fileContent: 'HTML Code:\n<div>Hello</div>\n\nCSS Code:\n div { color: blue; }',
-            fileNames: ['index.html', 'styles.css'],
-            criteria: 'Check for semantic HTML and CSS best practices',
-            score: 90,
-            hints: 'Add semantic tags like <main> or <section>',
-            userId: createdUsers[1].id,
-        },
-        {
-            query: 'let x = 10; console.log(x);',
-            fileContent: null,
-            fileNames: [],
-            criteria: 'Check for variable naming and console usage',
-            score: 70,
-            hints: 'Use const instead of let for constants',
-            userId: createdUsers[2].id,
-        },
-    ];
-    for (const codeQuery of codeQueries) {
-        await prisma.codeQuery.create({
-            data: {
-                query: codeQuery.query,
-                fileContent: codeQuery.fileContent,
-                fileNames: codeQuery.fileNames,
-                criteria: codeQuery.criteria,
-                score: codeQuery.score,
-                hints: codeQuery.hints,
-                userId: codeQuery.userId,
-            },
-        });
-        console.log(`Created CodeQuery for userId: ${codeQuery.userId}`);
-        const user = createdUsers.find((u) => u.id === codeQuery.userId);
-        if (user) {
-            const userCodeQueries = await prisma.codeQuery.findMany({
-                where: { userId: user.id },
-                select: { score: true },
-            });
-            const totalScore = userCodeQueries.reduce((sum, query) => sum + (query.score || 0), 0);
-            const newLastTaskId = userCodeQueries.length;
-            const averageScore = newLastTaskId > 0 ? totalScore / newLastTaskId : 0;
-            await prisma.user.update({
-                where: { id: user.id },
-                data: {
-                    totalScore,
-                    averageScore,
-                    lastTaskId: newLastTaskId,
-                },
-            });
-            console.log(`Updated userId: ${user.id} - Total Score: ${totalScore}, Average Score: ${averageScore}, Last Task ID: ${newLastTaskId}`);
-        }
-    }
-    console.log('CodeQuery entries created and user scores updated');
+
+    console.log('Users upserted with hashed passwords, current topic IDs, last task IDs, start date, and status');
 }
+
 main()
     .catch((e) => {
-    console.error(e);
-    process.exit(1);
-})
+        console.error(e);
+        process.exit(1);
+    })
     .finally(async () => {
-    await prisma.$disconnect();
-});
-//# sourceMappingURL=seed.js.map
+        await prisma.$disconnect();
+    });

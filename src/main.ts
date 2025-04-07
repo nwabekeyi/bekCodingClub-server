@@ -14,7 +14,7 @@ async function bootstrap() {
 
   // Middleware to handle CORS and OPTIONS requests
   app.use((req: Request, res: Response, next: NextFunction) => {
-    const allowedOrigins = ['http://127.0.0.1:5500','http://127.0.0.1:5502', 'http://127.0.0.1:5501', 'https://beks-coding-club-foundation-track.vercel.app', 'https://beks-coding-club-foundation-track-l0i56pp58.vercel.app/'];
+    const allowedOrigins = ['http://127.0.0.1:5500','http://127.0.0.1:5502', 'http://127.0.0.1:5501', 'https://beks-coding-club-foundation-track.vercel.app', 'https://beks-coding-club-foundation-track-ghs5i3ria.vercel.app '];
     const origin = req.headers.origin as string;
   
     if (allowedOrigins.includes(origin)) {

@@ -20,11 +20,11 @@ async function bootstrap() {
     if (allowedOrigins.includes(origin)) {
       res.header('Access-Control-Allow-Origin', origin);
     }
-  
+
     res.header('Access-Control-Allow-Methods', 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS');
     res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
     res.header('Access-Control-Allow-Credentials', 'true');
-  
+
     if (req.method === 'OPTIONS') {
       res.status(200).end();
     } else {
@@ -38,7 +38,7 @@ async function bootstrap() {
     credentials: true,
     allowedHeaders: 'Content-Type, Authorization',
   });
-  
+
 
   // API Documentation setup
   const config = new DocumentBuilder()
